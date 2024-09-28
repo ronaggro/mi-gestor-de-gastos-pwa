@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Gastos del Hogar</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4a90e2">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f39c12;
+            --background-color: #f4f7f9;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 20px;
+            padding: 25px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .button:hover {
+            background-color: #3a7bc8;
+            transform: translateY(-2px);
+        }
+
+        .button-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .button-outline:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            transition: var(--transition);
+        }
+
+        .input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+            outline: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+
+        .flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .list-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .text-red {
+            color: #e74c3c;
+        }
+
+        .text-green {
+            color: #2ecc71;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .flex {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card fade-in">
+            <h2 class="card-title">
+                <i class="fas fa-wallet"></i> Gestor de Gastos del Hogar - <span id="proyectoActualNombre">Proyecto Actual</span>
+            </h2>
+            <div class="flex">
+                <button id="cargarProyectoBtn" class="button button-outline">
+                    <i class="fas fa-folder-open"></i> Cargar Proyecto
+                </button>
+                <button id="guardarProyectoBtn" class="button button-outline">
+                    <i class="fas fa-save"></i> Guardar Proyecto
+                </button>
+                <button id="exportarExcelBtn" class="button">
+                    <i class="fas fa-file-excel"></i> Exportar a Excel
+                </button>
+            </div>
+            <div class="flex" style="margin-top: 20px;">
+                <span class="label">Presupuesto: $<span id="presupuestoActual">1100000</span></span>
+                <button id="editarPresupuestoBtn" class="button button-outline">
+                    <i class="fas fa-edit"></i> Editar Presupuesto
+                </button>
+            </div>
+            <div id="editarPresupuestoForm" style="display: none; margin-top: 20px;">
+                <input type="number" id="nuevoPresupuesto" class="input" placeholder="Nuevo presupuesto">
+                <button id="guardarPresupuestoBtn" class="button">
+                    <i class="fas fa-check"></i> Guardar Presupuesto
+                </button>
+            </div>
+            <div class="grid" style="margin-top: 20px;">
+                <div>
+                    <label for="nuevoGasto" class="label">Nuevo Gasto</label>
+                    <input type="text" id="nuevoGasto" class="input" placeholder="Nombre del gasto">
+                </div>
+                <div>
+                    <label for="nuevoValor" class="label">Valor</label>
+                    <input type="number" id="nuevoValor" class="input" placeholder="Valor del gasto">
+                </div>
+            </div>
+            <div class="grid" style="margin-top: 15px;">
+                <div>
+                    <label for="numeroCuotas" class="label">Número de Cuotas</label>
+                    <input type="number" id="numeroCuotas" class="input" placeholder="Número total de cuotas">
+                </div>
+                <div>
+                    <label for="cuotaActual" class="label">Cuota Actual</label>
+                    <input type="number" id="cuotaActual" class="input" placeholder="Cuota actual">
+                </div>
+            </div>
+            <button id="agregarGastoBtn" class="button" style="margin-top: 20px;">
+                <i class="fas fa-plus"></i> Agregar Gasto
+            </button>
+        </div>
+
+        <div class="card fade-in">
+            <h2 class="card-title"><i class="fas fa-list"></i> Lista de Gastos</h2>
+            <ul id="listaGastos" class="list"></ul>
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+                <p class="label">Total Gastos: $<span id="totalGastos">0</span></p>
+                <p class="label">Presupuesto Restante: $<span id="presupuestoRestante">1100000</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let proyectoActual = {
+            nombre: 'Proyecto Actual',
+            presupuesto: 1100000,
+            gastos: []
+        };
+        let proyectos = [];
+
+        function actualizarUI() {
+            document.getElementById('proyectoActualNombre').textContent = proyectoActual.nombre;
+            document.getElementById('presupuestoActual').textContent = proyectoActual.presupuesto.toLocaleString();
+            
+            const listaGastos = document.getElementById('listaGastos');
+            listaGastos.innerHTML = '';
+            proyectoActual.gastos.forEach(gasto => {
+                const li = document.createElement('li');
+                li.className = 'list-item fade-in';
+                const cuotaInfo = gasto.numeroCuotas ? ` (Cuota ${gasto.cuotaActual} de ${gasto.numeroCuotas})` : '';
+                li.innerHTML = `
+                    <span><i class="fas fa-receipt"></i> ${gasto.nombre}${cuotaInfo}: $${gasto.valor.toLocaleString()}</span>
+                    <div>
+                        <button class="button button-outline" onclick="editarGasto(${gasto.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="button button-outline" onclick="eliminarGasto(${gasto.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                listaGastos.appendChild(li);
+            });
+
+            const totalGastos = proyectoActual.gastos.reduce((sum, gasto) => sum + gasto.valor, 0);
+            const presupuestoRestante = proyectoActual.presupuesto - totalGastos;
+            document.getElementById('totalGastos').textContent = totalGastos.toLocaleString();
+            document.getElementById('presupuestoRestante').textContent = presupuestoRestante.toLocaleString();
+            document.getElementById('presupuestoRestante').className = presupuestoRestante < 0 ? 'text-red' : 'text-green';
+        }
+
+        function agregarGasto() {
+            const nombre = document.getElementById('nuevoGasto').value;
+            const valor = parseFloat(document.getElementById('nuevoValor').value);
+            const numeroCuotas = parseInt(document.getElementById('numeroCuotas').value) || 0;
+            const cuotaActual = parseInt(document.getElementById('cuotaActual').value) || 0;
+            if (nombre && valor) {
+                proyectoActual.gastos.push({
+                    id: Date.now(),
+                    nombre,
+                    valor,
+                    numeroCuotas,
+                    cuotaActual,
+                    fecha: new Date()
+                });
+                document.getElementById('nuevoGasto').value = '';
+                document.getElementById('nuevoValor').value = '';
+                document.getElementById('numeroCuotas').value = '';
+                document.getElementById('cuotaActual').value = '';
+                actualizarUI();
+                mostrarNotificacion('Gasto agregado con éxito', 'success');
+            } else {
+                mostrarNotificacion('Por favor, ingrese un nombre y un valor para el gasto', 'error');
+            }
+        }
+
+        function eliminarGasto(id) {
+            proyectoActual.gastos = proyectoActual.gastos.filter(gasto => gasto.id !== id);
+            actualizarUI();
+            mostrarNotificacion('Gasto eliminado', 'info');
+        }
+
+        function editarGasto(id) {
+            const gasto = proyectoActual.gastos.find(g => g.id === id);
+            const nuevoValor = prompt('Ingrese el nuevo valor:', gasto.valor);
+            if (nuevoValor !== null) {
+                gasto.valor = parseFloat(nuevoValor);
+                actualizarUI();
+                mostrarNotificacion('Gasto actualizado', 'success');
+            }
+        }
+
+        function editarPresupuesto() {
+            document.getElementById('editarPresupuestoForm').style.display = 'block';
+            document.getElementById('editarPresupuestoBtn').style.display = 'none';
+        }
+
+        function guardarPresupuesto() {
+            const nuevoPresupuesto = parseFloat(document.getElementById('nuevoPresupuesto').value);
+            if (nuevoPresupuesto) {
+                proyectoActual.presupuesto = nuevoPresupuesto;
+                document.getElementById('editarPresupuestoForm').style.display = 'none';
+                document.getElementById('editarPresupuestoBtn').style.display = 'inline-block';
+                document.getElementById('nuevoPresupuesto').value = '';
+                actualizarUI();
+                mostrarNotificacion('Presupuesto actualizado', 'success');
+            } else {
+                mostrarNotificacion('Por favor, ingrese un valor válido para el presupuesto', 'error');
+            }
+        }
+
+        function guardarProyecto() {
+            const nombre = prompt('Ingrese un nombre para el proyecto presupuestario:');
+            if (nombre) {
+                proyectos.push({...proyectoActual, nombre});
+                mostrarNotificacion('Proyecto presupuestario guardado con éxito', 'success');
+            } else {
+                mostrarNotificacion('Por favor, ingrese un nombre para el proyecto presupuestario', 'error');
+            }
+        }
+
+        function cargarProyecto() {
+            if (proyectos.length === 0) {
+                mostrarNotificacion('No hay proyectos guardados', 'info');
+                return;
+            }
+            const nombres = proyectos.map(p => p.nombre);
+            const nombre = prompt('Seleccione un proyecto presupuestario:\n' + nombres.join('\n'));
+            const proyecto = proyectos.find(p => p.nombre === nombre);
+            if (proyecto) {
+                proyectoActual = {...proyecto};
+                actualizarUI();
+                mostrarNotificacion(`Proyecto presupuestario "${nombre}" cargado`, 'success');
+            } else {
+                mostrarNotificacion('Proyecto no encontrado', 'error');
+            }
+        }
+
+        async function exportarAExcel() {
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = 'Gestor de Gastos del Hogar';
+            workbook.lastModifiedBy = 'Usuario';
+            workbook.created = new Date();
+            workbook.modified = new Date();
+
+            // Hoja de Resumen
+            const resumenSheet = workbook.addWorksheet('Resumen');
+            resumenSheet.columns = [
+                { header: 'Concepto', key: 'concepto', width: 20 },
+                { header: 'Valor', key: 'valor', width: 15 }
+            ];
+
+            resumenSheet.addRows([
+                { concepto: 'Proyecto', valor: proyectoActual.nombre },
+                { concepto: 'Presupuesto', valor: proyectoActual.presupuesto },
+                { concepto: 'Total Gastos', valor: proyectoActual.gastos.reduce((sum, gasto) => sum + gasto.valor, 0) },
+                { concepto: 'Presupuesto Restante', valor: proyectoActual.presupuesto - proyectoActual.gastos.reduce((sum, gasto) => sum + gasto.valor, 0) }
+            ]);
+
+            // Estilo para la hoja de Resumen
+            resumenSheet.getColumn('B').numFmt = '"$"#,##0.00';
+            resumenSheet.getRow(1).font = { bold: true };
+            resumenSheet.eachRow((row, rowNumber) => {
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: {style:'thin'},
+                        left: {style:'thin'},
+                        bottom: {style:'thin'},
+                        right: {style:'thin'}
+                    };
+                });
+            });
+
+            // Hoja de Gastos Detallados
+            const gastosSheet = workbook.addWorksheet('Gastos Detallados');
+            gastosSheet.columns = [
+                { header: 'Nombre', key: 'nombre', width: 20 },
+                { header: 'Valor', key: 'valor', width: 15 },
+                { header: 'Número de Cuotas', key: 'numeroCuotas', width: 20 },
+                { header: 'Cuota Actual', key: 'cuotaActual', width: 15 },
+                { header: 'Fecha', key: 'fecha', width: 20 }
+            ];
+
+            gastosSheet.addRows(proyectoActual.gastos.map(gasto => ({
+                nombre: gasto.nombre,
+                valor: gasto.valor,
+                numeroCuotas: gasto.numeroCuotas || '-',
+                cuotaActual: gasto.cuotaActual || '-',
+                fecha: new Date(gasto.fecha).toLocaleDateString()
+            })));
+
+            // Estilo para la hoja de Gastos Detallados
+            gastosSheet.getColumn('B').numFmt = '"$"#,##0.00';
+            gastosSheet.getRow(1).font = { bold: true };
+            gastosSheet.eachRow((row, rowNumber) => {
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: {style:'thin'},
+                        left: {style:'thin'},
+                        bottom: {style:'thin'},
+                        right: {style:'thin'}
+                    };
+                });
+            });
+
+            // Gráfico de Gastos por Categoría
+            const gastosPorCategoria = {};
+            proyectoActual.gastos.forEach(gasto => {
+                if (gastosPorCategoria[gasto.nombre]) {
+                    gastosPorCategoria[gasto.nombre] += gasto.valor;
+                } else {
+                    gastosPorCategoria[gasto.nombre] = gasto.valor;
+                }
+            });
+
+            const categoriaSheet = workbook.addWorksheet('Gastos por Categoría');
+            categoriaSheet.columns = [
+                { header: 'Categoría', key: 'categoria', width: 20 },
+                { header: 'Valor', key: 'valor', width: 15 }
+            ];
+
+            categoriaSheet.addRows(Object.entries(gastosPorCategoria).map(([categoria, valor]) => ({ categoria, valor })));
+
+            const pieChart = workbook.addChart({
+                type: 'pie',
+                title: 'Gastos por Categoría',
+                series: [
+                    {
+                        name: 'Gastos',
+                        categories: 'Gastos por Categoría!A2:A' + (Object.keys(gastosPorCategoria).length + 1),
+                        values: 'Gastos por Categoría!B2:B' + (Object.keys(gastosPorCategoria).length + 1)
+                    }
+                ]
+            });
+            pieChart.width = 500;
+            pieChart.height = 300;
+            categoriaSheet.addRow([]);
+            categoriaSheet.addChart(pieChart, 'A' + (Object.keys(gastosPorCategoria).length + 3));
+
+            // Gráfico de Gastos por Mes
+            const gastosPorMes = {};
+            proyectoActual.gastos.forEach(gasto => {
+                const fecha = new Date(gasto.fecha);
+                const mes = fecha.toLocaleString('default', { month: 'long' });
+                if (gastosPorMes[mes]) {
+                    gastosPorMes[mes] += gasto.valor;
+                } else {
+                    gastosPorMes[mes] = gasto.valor;
+                }
+            });
+
+            const mesSheet = workbook.addWorksheet('Gastos por Mes');
+            mesSheet.columns = [
+                { header: 'Mes', key: 'mes', width: 20 },
+                { header: 'Valor', key: 'valor', width: 15 }
+            ];
+
+            mesSheet.addRows(Object.entries(gastosPorMes).map(([mes, valor]) => ({ mes, valor })));
+
+            const barChart = workbook.addChart({
+                type: 'column',
+                title: 'Gastos por Mes',
+                series: [
+                    {
+                        name: 'Gastos',
+                        categories: 'Gastos por Mes!A2:A' + (Object.keys(gastosPorMes).length + 1),
+                        values: 'Gastos por Mes!B2:B' + (Object.keys(gastosPorMes).length + 1)
+                    }
+                ]
+            });
+            barChart.width = 600;
+            barChart.height = 400;
+            mesSheet.addRow([]);
+            mesSheet.addChart(barChart, 'A' + (Object.keys(gastosPorMes).length + 3));
+
+            // Guardar el archivo
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), 'Reporte_Gastos_del_Hogar.xlsx');
+            mostrarNotificacion('Reporte exportado con éxito', 'success');
+        }
+
+        function mostrarNotificacion(mensaje, tipo) {
+            const notificacion = document.createElement('div');
+            notificacion.textContent = mensaje;
+            notificacion.style.position = 'fixed';
+            notificacion.style.top = '20px';
+            notificacion.style.right = '20px';
+            notificacion.style.padding = '10px 20px';
+            notificacion.style.borderRadius = '5px';
+            notificacion.style.color = '#fff';
+            notificacion.style.zIndex = '1000';
+            notificacion.style.animation = 'fadeIn 0.5s, fadeOut 0.5s 2.5s';
+            
+            switch(tipo) {
+                case 'success':
+                    notificacion.style.backgroundColor = '#2ecc71';
+                    break;
+                case 'error':
+                    notificacion.style.backgroundColor = '#e74c3c';
+                    break;
+                case 'info':
+                    notificacion.style.backgroundColor = '#3498db';
+                    break;
+                default:
+                    notificacion.style.backgroundColor = '#34495e';
+            }
+
+            document.body.appendChild(notificacion);
+
+            setTimeout(() => {
+                document.body.removeChild(notificacion);
+            }, 3000);
+        }
+
+        document.getElementById('agregarGastoBtn').addEventListener('click', agregarGasto);
+        document.getElementById('editarPresupuestoBtn').addEventListener('click', editarPresupuesto);
+        document.getElementById('guardarPresupuestoBtn').addEventListener('click', guardarPresupuesto);
+        document.getElementById('guardarProyectoBtn').addEventListener('click', guardarProyecto);
+        document.getElementById('cargarProyectoBtn').addEventListener('click', cargarProyecto);
+        document.getElementById('exportarExcelBtn').addEventListener('click', exportarAExcel);
+
+        actualizarUI();
+
+        // Registrar el Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
